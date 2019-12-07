@@ -1,6 +1,6 @@
 # Super Secure Chat Application using Raspberry Pi
 
-**In this project, you and a partner are developing a super secure communication1 system using
+**In this project,  we are developing a super secure communication system using
 Raspberry Pi microcontroller kits to build custom terminals to communicate with each other. The
 communication is peer-to-peer between the Raspberry Pi peers, but they communicate with the
 server to log into the system and to get information. Once the communication between Pi
@@ -69,10 +69,9 @@ Each client sends an Authentication Request to the server. The authentication re
 
 The client sends an Authentication Request message to the server.
 		
-* msgtype: “AUTHREQ”
-* userid: string as entered by the user making the request;
-* passcode: the user’s passcode entered by the user on the keypad, then salted and
-* hashed (see passcode hashing section).
+* **msgtype: “AUTHREQ”
+* **userid: string as entered by the user making the request;
+* **passcode:** the user’s passcode entered by the user on the keypad, then salted and hashed
 
 **Authentication Request Message Example**
 	
@@ -84,9 +83,9 @@ The client sends an Authentication Request message to the server.
 		
 The server sends the Authentication Reply message to the client telling the client if the user is authenticated or not. The value of the status key is either “GRANTED” if successful (Listing 2), or “REFUSED” otherwise 
 
-* msgtype: “AUTHREPLY”
-* userid: string as entered by the user making the request;
-* status: “GRANTED” if the credentials were accepted, “REFUSED” otherwise.
+* **msgtype:** “AUTHREPLY”
+* **userid:** string as entered by the user making the request;
+* **status:** “GRANTED” if the credentials were accepted, “REFUSED” otherwise.
 	
 **Authentication Grant Reply Message Example - Authentication Granted**
 
@@ -103,3 +102,94 @@ The server sends the Authentication Reply message to the client telling the clie
 		}
 
 		
+## Lookup phase
+
+The initiating client sends a Lookup Request to the server. The request includes the user ID of the initiator and the user ID of the person the initiator wishes to contact. The server replies with a Lookup Reply message giving information about the person, or no information if that person is not logged in. As a precaution against requests by users not logged in, the server also replies with no information if the user making the request is not logged in. The server replies with a Lookup Reply message. The reply includes the user ID of the person the initiator wishes to contact, the IP address of her/his client and (optional) the encryption key to be used when communicating with that person.
+
+The client sends the Lookup Request message to the server
+
+* **msgtype:** “LOOKUPREQ”;
+* **userid:** string as entered by the user making the request;
+* **lookup:** the user ID of the person that the user is calling.
+
+**Lookup Request message example**
+
+	{
+	 "msgtype": "LOOKUPREQ",
+	 "userid": "sachin",
+	 "lookup": "rajat"
+	 }
+	
+**The server sends the Lookup Reply message to the client, with “status”:“SUCCESS” and information if found, or “status”:“NOTFOUND” and empty information fields otherwise.**
+
+* **msgtype:** “LOOKUPREPLY”;
+* **status:** “SUCCESS” if the user ID is logged in, “NOTFOUND” otherwise
+* **answer:** the user ID of the person that the user is calling;
+* **address:** the IP address of the remote user;
+* **encryptionkey:** the encryption key as a string.
+
+**Lookup Reply message example – User found, information returned**
+
+	{
+	  "msgtype": "LOOKUPREPLY",
+	  "status": "SUCCESS",
+	  "answer": "rajat",
+	  "address": "192.168.0.12",
+	  "encryptionkey": "1234",
+	} 
+	
+**Lookup Reply message example – User not found**
+
+	{
+	  "msgtype": "LOOKUPREPLY",
+	  "status": "SUCCESS",
+	  "answer": "",
+	  "address": "",
+	  "encryptionkey": "",
+	} 
+	
+**Connection Phase**
+
+The initiating terminal sends a Connection Request to the destination terminal. The request includes the user ID of the initiator. The destination terminal performs a Lookup Request of its own to the server and, if the address of the initiating user’s terminal matches the one registered with the server, the destination terminal replies with a Connect Reply “accepted” message to go ahead with the chat session, otherwise it sends a Connect Reply “refused” message. The initiator sends the Connect Request message to the destination terminal
+
+* **msgtype:** “CONNECTREQ”;
+* **initiator:** the user ID of the person making the request.
+
+**Connect Request message example – sachin requests connection to rajat**
+
+	{
+	 "msgtype": "CONNECTREQ",
+	 "initiator": "ali"
+	}
+
+**The destination sends the Connect Reply message “status”:“ACCEPTED” to the initiator terminal, or “status”:“REFUSED” otherwise.**
+
+* msgtype: “CONNECTREPLY”
+* answer: “ACCEPTED” or “REFUSED”
+
+**Connect Reply message example – Connection request accepted by destination**
+
+	{
+	  "msgtype": "CONNECTREPLY",
+	  "status": "ACCEPTED"
+	}
+
+**Connect Reply message example – Connection request refused**
+
+	{
+	  "msgtype": "CONNECTREPLY",
+	  "status": "REFUSED"
+	}
+	
+**Chat phase**
+
+No special messaging format is required in the chat phase. The two-way connection is established between terminals and the main loop can simply read from the open connection as if it was a stream of bytes. Each client can “catch” the CTRL-C KeyboardInterrupt to end the chat at any time. No special protocol is needed to end a session.
+	
+## GIT
+
+All source files must be submitted through the shared GIT repository for your group. The files must be organized into two subfolders: terminal and server. Each commit must be done using your own user ID and password.
+
+## Cryptography
+
+The extra functionality of hashing the passcodes and encrypting/decrypting the messages and chat exchanges is left as an option. A bonus of up to 2 points will be awarded for reasonably convincing hashing of the passcodes. A bonus of up to 3 points for reasonably convincing symmetric encryption of the messages and chat exchanges using the cryptographymodule in Python.
+
